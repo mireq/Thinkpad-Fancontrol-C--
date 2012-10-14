@@ -33,9 +33,9 @@
 #include "FanControl.h"
 #include "Logger.h"
 
-#define PID_FILE "/var/run/tp-fancontrol.pid"
-
 using namespace std;
+
+string PID_FILE = "/var/run/tp-fancontrol.pid";
 
 void usage(const char *progName)
 {
@@ -81,7 +81,7 @@ void cleanup(int signo = -1)
 
 void cleanupDaemon(int signo = -1)
 {
-	remove(PID_FILE);
+	remove(PID_FILE.c_str());
 	cleanup(signo);
 }
 
@@ -111,7 +111,6 @@ int main(int argc, char *argv[])
 	bool syslog = false;
 	bool killDaemon = false;
 	bool suspendDaemon = false;
-	string pidFile = PID_FILE;
 
 	int c = 0;
 	while ((c = getopt(argc, argv, "s:S:qtdlp:kuh")) != -1) {
@@ -141,7 +140,7 @@ int main(int argc, char *argv[])
 				suspendDaemon = true;
 				break;
 			case 'p':
-				pidFile = optarg;
+				PID_FILE = optarg;
 				break;
 			case 'h':
 				usage(argv[0]);
@@ -175,7 +174,7 @@ int main(int argc, char *argv[])
 	Logger::instance().setQuiet(quiet);
 
 	if (killDaemon || suspendDaemon) {
-		ifstream pidFile(PID_FILE);
+		ifstream pidFile(PID_FILE.c_str());
 		if (!pidFile) {
 			exit(0);
 		}
@@ -190,12 +189,12 @@ int main(int argc, char *argv[])
 		}
 	}
 	else if (daemonize) {
-		if (ifstream(PID_FILE)) {
+		if (ifstream(PID_FILE.c_str())) {
 			cout << argv[0] << ": File " << PID_FILE <<" already exists, refusing to run." << endl;
 			exit(1);
 		}
 		else {
-			ofstream pidFile(PID_FILE);
+			ofstream pidFile(PID_FILE.c_str());
 			if (!pidFile) {
 				cerr << "Could not open " << PID_FILE << endl;
 				exit(1);
@@ -227,7 +226,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	else {
-		if (ifstream(PID_FILE)) {
+		if (ifstream(PID_FILE.c_str())) {
 			cout << argv[0] << ": WARNING: daemon already running" << endl;
 		}
 		if (!dryRun) {

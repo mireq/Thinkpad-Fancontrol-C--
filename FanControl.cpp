@@ -14,6 +14,7 @@
 #include <iostream>
 #include <list>
 #include <sstream>
+#include <vector>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -28,8 +29,46 @@
 #define HITACHI_MODELS {"HTS4212..H9AT00", "HTS726060M9AT00", "HTS5410..G9AT00", "IC25N0..ATCS04", "IC25N0..ATCS05", "IC25T0..ATCS04", "IC25T0..ATCS05", "HTE541040G9AT00", "HTS5416..J9AT00", "HTS5416..J9SA00", "HTS54161"}
 #define HDAPS_TEMP "/sys/bus/platform/drivers/hdaps/hdaps/temp1"
 #define SUSPEND_TIME 60
+#define OFF_THRESH_DELTA 3
+#define MIN_WAIT 180
+#define WAIT_COUNT (MIN_WAIT / INTERVAL)
+#define LEVEL_COUNT 4
 
 using namespace std;
+
+/*
+ WARNING: The list of temperature ranges used below is much more liberal
+ than the rules used by the embedded controller firmware, and is
+ derived mostly from anecdotal evidence, hunches and wishful thinking.
+ It is also model-specific (see http://thinkwiki.org/wiki/Thermal_sensors).
+
+ Temperature ranges, per sensor:
+ (min temperature: when to step up from 0-th fan level,
+  max temperature: when to step up to maximum fan level)
+*/
+
+const list<int> THRESHOLDS({
+             //  Sensor     ThinkPad model
+             //             R51     T41/2  Z60t   T43-26xx
+//min  max   //  ---------- ------- -----  -----  ---------------------------
+  50,  70,   //  EC 0x78    CPU     CPU    ?      CPU
+  47,  60,   //  EC 0x79    miniPCI ?      ?      Between CPU and PCMCIA slot
+  43,  55,   //  EC 0x7A    HDD     ?      ?      PCMCIA slot
+  49,  68,   //  EC 0x7B    GPU     GPU    ?      GPU
+  40,  50,   //  EC 0x7C    BAT     BAT    BAT    Sys BAT (front left of battery)
+  40,  50,   //  EC 0x7D    n/a     n/a    n/a    UltraBay BAT
+  37,  47,   //  EC 0x7E    BAT     BAT    BAT    Sys BAT (rear right of battery)
+  37,  47,   //  EC 0x7F    n/a     n/a    n/a    UltraBay BAT
+
+  45,  60,   //  EC 0xC0    ?       n/a    ?      Between northbridge and DRAM
+  48,  62,   //  EC 0xC1    ?       n/a    ?      Southbridge (under miniPCI)
+  50,  65,   //  EC 0xC2    ?       n/a    ?      Power circuitry (under CDC)
+
+  47,  58,   //  HDD        ->      ->     ->     Hard disk internal sensor
+  47,  60,   //  HDAPS      ->      ->     ->     HDAPS readout (same as EC 0x79)
+});
+
+const vector<int> LEVELS({0, 2, 4, 7});
 
 FanControl::FanControl():
 	m_dryRun(false),
@@ -74,6 +113,12 @@ void FanControl::control()
 	Logger::instance().log("Starting dynamic fan control");
 
 	int cycle = 0;
+	int idx = 0;
+	int newIdx = 0;
+	int startTime = 0;
+	int maxIdx = LEVEL_COUNT - 1;
+	int oldLevel = 0;
+	bool first = true;
 	while(1) {
 		if (cycle % DISK_POOL_INTERVAL_COUNT == 0) {
 			m_hddTemp = readDiskTemp("hda");
@@ -91,8 +136,56 @@ void FanControl::control()
 		temperatures.push_back(m_hddTemp);
 		temperatures.push_back(readHdapsTemp());
 
-		++cycle;
+		int now = time(0);
+		int maxZ = (idx > 0 ? (now > startTime + MIN_WAIT ? 2 * (idx - 1) : 2 * idx) : 0 );
+		auto thresholdIt = THRESHOLDS.begin();
+		for (auto tempIt = temperatures.begin(); tempIt != temperatures.end(); ++tempIt) {
+			int min = *thresholdIt;
+			++thresholdIt;
+			int max = *thresholdIt;
+			++thresholdIt;
+			if (*tempIt == 128 || *tempIt == -128) {
+				continue;
+			}
+
+			int z = 0;
+			if (*tempIt < min - OFF_THRESH_DELTA) {
+				z = 0;
+			}
+			else {
+				z = ( (2 * (*tempIt - min) * (maxIdx - 1)) / (max - min)) + 2;
+				if (z < 1) {
+					z = 1;
+				}
+				if (z > 2 * maxIdx) {
+					z = 2 * maxIdx;
+				}
+				if (z > maxZ) {
+					maxZ = z;
+				}
+			}
+		}
+
+		int hys = (maxZ == 2 * idx - 1);
+		if (!hys) {
+			maxZ++;
+		}
+		newIdx = maxZ / 2;
+
+		if (!first) {
+			oldLevel = LEVELS[idx];
+		}
+		int newLevel = LEVELS[newIdx];
+		if (oldLevel != newLevel) {
+			startTime = time(0);
+		}
+
+		setLevel(newLevel);
+
 		sleep(INTERVAL);
+		++cycle;
+		first = false;
+		idx = newIdx;
 	}
 }
 
@@ -236,5 +329,9 @@ int FanControl::readHdapsTemp()
 
 void FanControl::setLevel(int level)
 {
+	ostringstream level_command;
+	level_command << "level " << level;
+	string command = level_command.str();
+	sendIbmCommand("fan", command.c_str());
 }
 
