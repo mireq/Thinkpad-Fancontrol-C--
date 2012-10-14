@@ -67,6 +67,32 @@ void setPriority()
 	}
 }
 
+void cleanup(int signo = -1)
+{
+	if (signo != -1) {
+		exit(1);
+	}
+	else {
+		exit(0);
+	}
+}
+
+void cleanupNormal()
+{
+	cleanup();
+}
+
+void registerSignals()
+{
+	signal(SIGHUP, cleanup);
+	signal(SIGINT, cleanup);
+	signal(SIGABRT, cleanup);
+	signal(SIGQUIT, cleanup);
+	signal(SIGSEGV, cleanup);
+	signal(SIGTERM, cleanup);
+	atexit(cleanupNormal);
+}
+
 int main(int argc, char *argv[])
 {
 	string minThreshShift;
@@ -184,6 +210,7 @@ int main(int argc, char *argv[])
 			if (!dryRun) {
 				setPriority();
 			}
+			registerSignals();
 			fanControl.control();
 		}
 	}
@@ -194,8 +221,10 @@ int main(int argc, char *argv[])
 		if (!dryRun) {
 			setPriority();
 		}
+		registerSignals();
 		fanControl.control();
 	}
 
 	return 0;
 }
+
