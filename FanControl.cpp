@@ -9,10 +9,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <unistd.h>
 #include "FanControl.h"
 
 #define IBM_ACPI "/proc/acpi/ibm"
+#define INTERVAL 3
+#define WATCHDOG_DELAY (3 * INTERVAL)
 
 using namespace std;
 
@@ -32,8 +35,12 @@ FanControl &FanControl::instance()
 
 void FanControl::control()
 {
+	ostringstream watchdog_command;
+	watchdog_command << "watchdog " << WATCHDOG_DELAY;
+	string command = watchdog_command.str();
+	sendIbmCommand("fan", command.c_str());
 	while(1) {
-		sleep(2);
+		sleep(INTERVAL);
 	}
 }
 
