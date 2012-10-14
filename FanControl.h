@@ -27,6 +27,7 @@ public:
 
 	void control();
 	void cleanup();
+	void suspend();
 
 private:
 	bool sendIbmCommand(const std::string &device, const std::string &command);
@@ -35,6 +36,7 @@ private:
 	bool checkModelPattern(const std::string &model, const std::string &pattern);
 	int readHitachiTemp(const std::string dev);
 	int readHdapsTemp();
+	void setLevel(int level);
 
 private:
 	bool m_dryRun;

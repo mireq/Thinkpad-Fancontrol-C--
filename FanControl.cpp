@@ -27,6 +27,7 @@
 #define DISK_POOL_INTERVAL_COUNT (DISK_POOL_PERIOD / INTERVAL)
 #define HITACHI_MODELS {"HTS4212..H9AT00", "HTS726060M9AT00", "HTS5410..G9AT00", "IC25N0..ATCS04", "IC25N0..ATCS05", "IC25T0..ATCS04", "IC25T0..ATCS05", "HTE541040G9AT00", "HTS5416..J9AT00", "HTS5416..J9SA00", "HTS54161"}
 #define HDAPS_TEMP "/sys/bus/platform/drivers/hdaps/hdaps/temp1"
+#define SUSPEND_TIME 60
 
 using namespace std;
 
@@ -99,6 +100,12 @@ void FanControl::cleanup()
 {
 	sendIbmCommand("fan", "enable");
 	sendIbmCommand("fan", "watchdog 0");
+}
+
+void FanControl::suspend()
+{
+	setLevel(0);
+	sleep(SUSPEND_TIME);
 }
 
 bool FanControl::sendIbmCommand(const std::string &device, const std::string &command)
@@ -225,5 +232,9 @@ int FanControl::readHdapsTemp()
 	int temp;
 	in >> temp;
 	return temp;
+}
+
+void FanControl::setLevel(int level)
+{
 }
 

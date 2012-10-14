@@ -85,6 +85,11 @@ void cleanupDaemon(int signo = -1)
 	cleanup(signo);
 }
 
+void suspendDaemon(int /* signo */)
+{
+	FanControl::instance().suspend();
+}
+
 void registerSignals(void (*cleanupHandler)(int))
 {
 	signal(SIGHUP, cleanupHandler);
@@ -93,6 +98,7 @@ void registerSignals(void (*cleanupHandler)(int))
 	signal(SIGQUIT, cleanupHandler);
 	signal(SIGSEGV, cleanupHandler);
 	signal(SIGTERM, cleanupHandler);
+	signal(SIGUSR1, suspendDaemon);
 }
 
 int main(int argc, char *argv[])
