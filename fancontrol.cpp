@@ -21,6 +21,7 @@
 */
 
 #include <cstdlib>
+#include <cstdio>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
@@ -80,6 +81,7 @@ void cleanup(int signo = -1)
 
 void cleanupDaemon(int signo = -1)
 {
+	remove(PID_FILE);
 	cleanup(signo);
 }
 
@@ -169,7 +171,7 @@ int main(int argc, char *argv[])
 		pidFile >> pid;
 
 		if (killDaemon) {
-			kill(pid, SIGKILL);
+			kill(pid, SIGINT);
 		}
 		else {
 			kill(pid, SIGUSR1);
