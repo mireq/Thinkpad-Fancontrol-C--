@@ -30,9 +30,11 @@ public:
 
 private:
 	bool sendIbmCommand(const std::string &device, const std::string &command);
+	std::string readIbmProperty(const std::string &device, const std::string &property);
 	int readDiskTemp(const std::string &device);
 	bool checkModelPattern(const std::string &model, const std::string &pattern);
 	int readHitachiTemp(const std::string dev);
+	int readHdapsTemp();
 
 private:
 	bool m_dryRun;

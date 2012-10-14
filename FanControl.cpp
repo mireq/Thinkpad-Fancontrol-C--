@@ -26,6 +26,7 @@
 #define DISK_POOL_PERIOD 24
 #define DISK_POOL_INTERVAL_COUNT (DISK_POOL_PERIOD / INTERVAL)
 #define HITACHI_MODELS {"HTS4212..H9AT00", "HTS726060M9AT00", "HTS5410..G9AT00", "IC25N0..ATCS04", "IC25N0..ATCS05", "IC25T0..ATCS04", "IC25T0..ATCS05", "HTE541040G9AT00", "HTS5416..J9AT00", "HTS5416..J9SA00", "HTS54161"}
+#define HDAPS_TEMP "/sys/bus/platform/drivers/hdaps/hdaps/temp1"
 
 using namespace std;
 
@@ -79,6 +80,16 @@ void FanControl::control()
 				m_hddTemp = readDiskTemp("sda");
 			}
 		}
+		istringstream temperaturesReadStream(readIbmProperty("thermal", "temperatures"));
+		list<int> temperatures;
+		for (int i = 0; i < 11; ++i) {
+			int temp;
+			temperaturesReadStream >> temp;
+			temperatures.push_back(temp);
+		}
+		temperatures.push_back(m_hddTemp);
+		temperatures.push_back(readHdapsTemp());
+
 		++cycle;
 		sleep(INTERVAL);
 	}
@@ -108,6 +119,28 @@ bool FanControl::sendIbmCommand(const std::string &device, const std::string &co
 		return false;
 	}
 	return true;
+}
+
+std::string FanControl::readIbmProperty(const std::string &device, const std::string &property)
+{
+	string search = property + ":";
+	string fileName = string(IBM_ACPI) + "/" + device;
+	ifstream dev(fileName.c_str());
+	string line;
+	while (dev.good()) {
+		getline(dev, line);
+		if (line.length()) {
+			line.erase(line.length() - 1);
+		}
+		if (line.find_first_of(search) == 0) {
+			line = line.substr(search.length());
+			while (line.length() && (line[0] == ' ' || line[0] == '\t')) {
+				line = line.substr(1);
+			}
+			return line;
+		}
+	}
+	return string();
 }
 
 int FanControl::readDiskTemp(const std::string &device)
@@ -181,5 +214,16 @@ int FanControl::readHitachiTemp(const std::string dev)
 		close(fd);
 		return -128;
 	}
+}
+
+int FanControl::readHdapsTemp()
+{
+	ifstream in(HDAPS_TEMP);
+	if (!in) {
+		return -128;
+	}
+	int temp;
+	in >> temp;
+	return temp;
 }
 
