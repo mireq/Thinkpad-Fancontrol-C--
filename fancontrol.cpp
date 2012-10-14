@@ -162,6 +162,10 @@ int main(int argc, char *argv[])
 		daemonize = false;
 	}
 
+	FanControl::instance().setDryRun(dryRun);
+	FanControl::instance().setQuiet(quiet);
+	FanControl::instance().setSyslog(syslog);
+
 	if (killDaemon || suspendDaemon) {
 		ifstream pidFile(PID_FILE);
 		if (!pidFile) {

@@ -18,11 +18,21 @@ private:
 public:
 	~FanControl();
 	static FanControl &instance();
+
+	void setDryRun(bool dryRun);
+	void setQuiet(bool quiet);
+	void setSyslog(bool syslog);
+
 	void control();
 	void cleanup();
 
 private:
 	bool sendIbmCommand(const char *device, const char *command);
+
+private:
+	bool m_dryRun;
+	bool m_quiet;
+	bool m_syslog;
 }; /* -----  end of class FanControl  ----- */
 
 #endif /* end of include guard: FANCONTROL_H_BPJQMR65 */

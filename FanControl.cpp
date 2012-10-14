@@ -19,7 +19,10 @@
 
 using namespace std;
 
-FanControl::FanControl()
+FanControl::FanControl():
+	m_dryRun(false),
+	m_quiet(false),
+	m_syslog(false)
 {
 }
 
@@ -31,6 +34,21 @@ FanControl &FanControl::instance()
 {
 	static FanControl inst;
 	return inst;
+}
+
+void FanControl::setDryRun(bool dryRun)
+{
+	m_dryRun = dryRun;
+}
+
+void FanControl::setQuiet(bool quiet)
+{
+	m_quiet = quiet;
+}
+
+void FanControl::setSyslog(bool syslog)
+{
+	m_syslog = syslog;
 }
 
 void FanControl::control()
@@ -52,6 +70,10 @@ void FanControl::cleanup()
 
 bool FanControl::sendIbmCommand(const char *device, const char *command)
 {
+	if (m_dryRun) {
+		cout << "Command: " << device << ": " << command << endl;
+		return true;
+	}
 	string fileName = string(IBM_ACPI) + "/" + device;
 	ofstream dev(fileName.c_str());
 	if (!dev) {
