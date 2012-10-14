@@ -24,6 +24,7 @@
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
+#include <signal.h>
 #include <string>
 #include <unistd.h>
 #include <sys/resource.h>
@@ -136,6 +137,19 @@ int main(int argc, char *argv[])
 	}
 
 	if (killDaemon || suspendDaemon) {
+		ifstream pidFile(PID_FILE);
+		if (!pidFile) {
+			exit(0);
+		}
+		int pid;
+		pidFile >> pid;
+
+		if (killDaemon) {
+			kill(pid, SIGKILL);
+		}
+		else {
+			kill(pid, SIGUSR1);
+		}
 	}
 	else if (daemonize) {
 		if (ifstream(PID_FILE)) {
