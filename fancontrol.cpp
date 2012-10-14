@@ -31,9 +31,9 @@
 #include <sys/resource.h>
 
 #include "FanControl.h"
+#include "Logger.h"
 
 #define PID_FILE "/var/run/tp-fancontrol.pid"
-#define LOGGER "/usr/bin/logger"
 
 using namespace std;
 
@@ -62,7 +62,7 @@ bool loggerExists()
 
 void setPriority()
 {
-	int errno = setpriority(PRIO_PROCESS, getpid(), -10);
+	setpriority(PRIO_PROCESS, getpid(), -10);
 	if (errno != 0) {
 		cerr << "Could not set priority" << endl;
 	}
@@ -165,6 +165,8 @@ int main(int argc, char *argv[])
 	FanControl::instance().setDryRun(dryRun);
 	FanControl::instance().setQuiet(quiet);
 	FanControl::instance().setSyslog(syslog);
+	Logger::instance().setSyslog(syslog);
+	Logger::instance().setQuiet(quiet);
 
 	if (killDaemon || suspendDaemon) {
 		ifstream pidFile(PID_FILE);

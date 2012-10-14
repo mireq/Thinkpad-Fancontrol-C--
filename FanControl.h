@@ -10,6 +10,8 @@
 #ifndef FANCONTROL_H_BPJQMR65
 #define FANCONTROL_H_BPJQMR65
 
+#include <string>
+
 class FanControl
 {
 private:
@@ -27,12 +29,17 @@ public:
 	void cleanup();
 
 private:
-	bool sendIbmCommand(const char *device, const char *command);
+	bool sendIbmCommand(const std::string &device, const std::string &command);
+	int readDiskTemp(const std::string &device);
+	bool checkModelPattern(const std::string &model, const std::string &pattern);
+	int readHitachiTemp(const std::string dev);
 
 private:
 	bool m_dryRun;
 	bool m_quiet;
 	bool m_syslog;
+
+	int m_hddTemp;
 }; /* -----  end of class FanControl  ----- */
 
 #endif /* end of include guard: FANCONTROL_H_BPJQMR65 */
