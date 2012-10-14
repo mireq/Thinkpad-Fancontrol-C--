@@ -21,11 +21,17 @@
 */
 
 #include <cstdlib>
+#include <fstream>
 #include <getopt.h>
 #include <iostream>
 #include <string>
+#include <unistd.h>
+#include <sys/resource.h>
+
+#include "FanControl.h"
 
 #define PID_FILE "/var/run/tp-fancontrol.pid"
+#define LOGGER "/usr/bin/logger"
 
 using namespace std;
 
@@ -47,6 +53,19 @@ void usage(const char *progName)
    -p     Pid file location for daemon mode, default: " << PID_FILE << endl;
 }
 
+bool loggerExists()
+{
+	return ifstream(LOGGER);
+}
+
+void setPriority()
+{
+	int errno = setpriority(PRIO_PROCESS, getpid(), -10);
+	if (errno != 0) {
+		cerr << "Could not set priority" << endl;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	string minThreshShift;
@@ -58,6 +77,8 @@ int main(int argc, char *argv[])
 	bool killDaemon = false;
 	bool suspendDaemon = false;
 	string pidFile = PID_FILE;
+
+	FanControl fanControl;
 
 	int c = 0;
 	while ((c = getopt(argc, argv, "s:S:qtdlp:kuh")) != -1) {
@@ -102,5 +123,65 @@ int main(int argc, char *argv[])
 				exit(-1);
 		}
 	}
+
+	if (!loggerExists()) {
+		cout << "Logger " << LOGGER << " not found, disabling." << endl;
+		syslog = false;
+	}
+
+	if (dryRun) {
+		cout << argv[0] << ": Dry run, will not change fan state." << endl;
+		quiet = false;
+		daemonize = false;
+	}
+
+	if (killDaemon || suspendDaemon) {
+	}
+	else if (daemonize) {
+		if (ifstream(PID_FILE)) {
+			cout << argv[0] << ": File " << PID_FILE <<" already exists, refusing to run." << endl;
+			exit(1);
+		}
+		else {
+			ofstream pidFile(PID_FILE);
+			if (!pidFile) {
+				cerr << "Could not open " << PID_FILE << endl;
+				exit(1);
+			}
+			int pid = fork();
+			if (pid < 0) {
+				cerr << "Could not daemonize." << endl;
+				pidFile.close();
+				exit(1);
+			}
+
+			if (pid > 0) {
+				pidFile << pid;
+				pidFile.close();
+				exit(0);
+			}
+			pidFile.close();
+
+			// Uzatvorenie file descriptorov
+			close(STDIN_FILENO);
+			close(STDOUT_FILENO);
+			close(STDERR_FILENO);
+
+			if (!dryRun) {
+				setPriority();
+			}
+			fanControl.control();
+		}
+	}
+	else {
+		if (ifstream(PID_FILE)) {
+			cout << argv[0] << ": WARNING: daemon already running" << endl;
+		}
+		if (!dryRun) {
+			setPriority();
+		}
+		fanControl.control();
+	}
+
 	return 0;
 }

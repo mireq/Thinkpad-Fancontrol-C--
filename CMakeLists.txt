@@ -15,10 +15,12 @@ include_directories(
 )
 
 set(fancontrol_HDRS
+	FanControl.h
 )
 
 set(fancontrol_SRCS
 	fancontrol.cpp
+	FanControl.cpp
 )
 
 add_executable(ibm-fancontrold
