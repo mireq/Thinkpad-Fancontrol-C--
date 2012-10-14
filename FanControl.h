@@ -12,12 +12,17 @@
 
 class FanControl
 {
-public:
+private:
 	FanControl();
+
+public:
 	~FanControl();
+	static FanControl &instance();
 	void control();
+	void cleanup();
 
 private:
+	bool sendIbmCommand(const char *device, const char *command);
 }; /* -----  end of class FanControl  ----- */
 
 #endif /* end of include guard: FANCONTROL_H_BPJQMR65 */

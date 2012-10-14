@@ -69,7 +69,8 @@ void setPriority()
 
 void cleanup(int signo = -1)
 {
-	if (signo != -1) {
+	FanControl::instance().cleanup();
+	if (signo != SIGINT) {
 		exit(1);
 	}
 	else {
@@ -77,20 +78,19 @@ void cleanup(int signo = -1)
 	}
 }
 
-void cleanupNormal()
+void cleanupDaemon(int signo = -1)
 {
-	cleanup();
+	cleanup(signo);
 }
 
-void registerSignals()
+void registerSignals(void (*cleanupHandler)(int))
 {
-	signal(SIGHUP, cleanup);
-	signal(SIGINT, cleanup);
-	signal(SIGABRT, cleanup);
-	signal(SIGQUIT, cleanup);
-	signal(SIGSEGV, cleanup);
-	signal(SIGTERM, cleanup);
-	atexit(cleanupNormal);
+	signal(SIGHUP, cleanupHandler);
+	signal(SIGINT, cleanupHandler);
+	signal(SIGABRT, cleanupHandler);
+	signal(SIGQUIT, cleanupHandler);
+	signal(SIGSEGV, cleanupHandler);
+	signal(SIGTERM, cleanupHandler);
 }
 
 int main(int argc, char *argv[])
@@ -104,8 +104,6 @@ int main(int argc, char *argv[])
 	bool killDaemon = false;
 	bool suspendDaemon = false;
 	string pidFile = PID_FILE;
-
-	FanControl fanControl;
 
 	int c = 0;
 	while ((c = getopt(argc, argv, "s:S:qtdlp:kuh")) != -1) {
@@ -210,8 +208,8 @@ int main(int argc, char *argv[])
 			if (!dryRun) {
 				setPriority();
 			}
-			registerSignals();
-			fanControl.control();
+			registerSignals(cleanupDaemon);
+			FanControl::instance().control();
 		}
 	}
 	else {
@@ -221,8 +219,8 @@ int main(int argc, char *argv[])
 		if (!dryRun) {
 			setPriority();
 		}
-		registerSignals();
-		fanControl.control();
+		registerSignals(cleanup);
+		FanControl::instance().control();
 	}
 
 	return 0;
