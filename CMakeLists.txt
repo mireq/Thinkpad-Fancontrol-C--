@@ -1,0 +1,31 @@
+project(TpFancontrol C CXX)
+cmake_minimum_required(VERSION 2.6)
+cmake_policy(SET CMP0003 NEW)
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+	set(CMAKE_CXX_FLAGS_RELEASE "-std=c++0x -Wall -DNDEBUG")
+	set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g -std=c++0x -Wall -Wextra -DDEBUG")
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
+include_directories(
+	"${PROJECT_BINARY_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}"
+	"${CMAKE_CURRENT_BINARY_DIR}"
+	${LIBSQLITE3_INCLUDE_DIRS}
+)
+
+set(fancontrol_HDRS
+)
+
+set(fancontrol_SRCS
+	fancontrol.cpp
+)
+
+add_executable(ibm-fancontrold
+	${fancontrol_HDRS}
+	${fancontrol_SRCS}
+)
+
+target_link_libraries(
+	ibm-fancontrold
+)
