@@ -1,6 +1,6 @@
 /*
  * =====================================================================
- *        Version:  1.0
+ *        Version:  1.1
  *        Created:  14.10.2012 10:41:49
  *         Author:  Miroslav Bendík
  *        Company:  LinuxOS.sk
@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <fstream>
+#include <glob.h>
 #include <iostream>
 #include <list>
 #include <sstream>
@@ -126,15 +127,37 @@ void FanControl::control()
 				m_hddTemp = readDiskTemp("sda");
 			}
 		}
-		istringstream temperaturesReadStream(readIbmProperty("thermal", "temperatures"));
 		list<int> temperatures;
-		for (int i = 0; i < 11; ++i) {
-			int temp;
-			temperaturesReadStream >> temp;
-			temperatures.push_back(temp);
+		string thermal = readIbmProperty("thermal", "temperatures");
+		if (thermal.length()) {
+			Logger::instance().log("Readig /proc/acpi/ibm/thermal");
+			istringstream temperaturesReadStream(thermal);
+			for (int i = 0; i < 11; ++i) {
+				int temp;
+				temperaturesReadStream >> temp;
+				temperatures.push_back(temp);
+			}
+			temperatures.push_back(m_hddTemp);
+			temperatures.push_back(readHdapsTemp());
 		}
-		temperatures.push_back(m_hddTemp);
-		temperatures.push_back(readHdapsTemp());
+		else {
+			Logger::instance().log("Readig temperatures from /sys");
+			glob_t glob_result;
+			glob("/sys/devices/platform/coretemp.0/temp*_input", GLOB_TILDE, NULL, &glob_result);
+			if (glob_result.gl_pathc == 0) {
+				globfree(&glob_result);
+				Logger::instance().log("No CPU temperature");
+				exit(1);
+				return;
+			}
+			else {
+				Logger::instance().log(std::string("Reading temperature from ") + glob_result.gl_pathv[0]);
+				ifstream in(glob_result.gl_pathv[0]);
+				int temp;
+				in >> temp;
+				temperatures.push_back(temp / 1000);
+			}
+		}
 
 		int now = time(0);
 		int maxZ = (idx > 0 ? (now > startTime + MIN_WAIT ? 2 * (idx - 1) : 2 * idx) : 0 );
