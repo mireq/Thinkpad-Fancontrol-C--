@@ -137,8 +137,6 @@ void FanControl::control()
 				temperaturesReadStream >> temp;
 				temperatures.push_back(temp);
 			}
-			temperatures.push_back(m_hddTemp);
-			temperatures.push_back(readHdapsTemp());
 		}
 		else {
 			Logger::instance().log("Readig temperatures from /sys");
@@ -156,8 +154,13 @@ void FanControl::control()
 				int temp;
 				in >> temp;
 				temperatures.push_back(temp / 1000);
+				for (int i = 0; i < 10; ++i) {
+					temperatures.push_back(-128);
+				}
 			}
 		}
+		temperatures.push_back(m_hddTemp);
+		temperatures.push_back(readHdapsTemp());
 
 		int now = time(0);
 		int maxZ = (idx > 0 ? (now > startTime + MIN_WAIT ? 2 * (idx - 1) : 2 * idx) : 0 );
