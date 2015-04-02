@@ -2,8 +2,9 @@ project(TpFancontrol C CXX)
 cmake_minimum_required(VERSION 2.6)
 cmake_policy(SET CMP0003 NEW)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-std=c++0x -Wall -DNDEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g -std=c++0x -Wall -Wextra -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -Wall -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g -std=c++11 -Wall -Wextra -DDEBUG")
+set(CMAKE_CXX_FLAGS "-std=c++11")
 
 include_directories(
 	"${PROJECT_BINARY_DIR}"
