@@ -357,6 +357,7 @@ int FanControl::readHdapsTemp()
 		ostringstream msg;
 		msg << "Failed to read hdd temp:" << e.what();
 		Logger::instance().log(msg.str());
+		return -128;
 	}
 }
 
