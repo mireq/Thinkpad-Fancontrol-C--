@@ -22,6 +22,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cerrno>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
