@@ -344,13 +344,20 @@ int FanControl::readHitachiTemp(const std::string dev)
 
 int FanControl::readHdapsTemp()
 {
-	ifstream in(HDAPS_TEMP);
-	if (!in) {
-		return -128;
+	try {
+		ifstream in(HDAPS_TEMP);
+		if (!in) {
+			return -128;
+		}
+		int temp;
+		in >> temp;
+		return temp;
 	}
-	int temp;
-	in >> temp;
-	return temp;
+	catch (const std::ios_base::failure& e) {
+		ostringstream msg;
+		msg << "Failed to read hdd temp:" << e.what();
+		Logger::instance().log(msg.str());
+	}
 }
 
 void FanControl::setLevel(int level)
